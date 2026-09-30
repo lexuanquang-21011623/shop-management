@@ -44,4 +44,13 @@ public class ProductController {
 
         return productRepository.save(product);
     }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteProduct(@PathVariable Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+
+        productRepository.delete(product);
+    }
 }
