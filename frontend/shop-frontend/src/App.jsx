@@ -3,6 +3,7 @@ import "./App.css";
 
 const API_URL = "http://localhost:8080/api/products";
 const CART_API_URL = "http://localhost:8080/api/carts";
+const CHECKOUT_API_URL = "http://localhost:8080/api/checkout";
 const CART_ID = 1;
 
 function App() {
@@ -79,6 +80,7 @@ function App() {
       setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
+
       showMessage(
           "Không thể tải danh sách sản phẩm",
           "error"
@@ -462,7 +464,10 @@ function App() {
 
   const openCheckout = () => {
     if (cartItems.length === 0) {
-      showMessage("Vui lòng thêm sản phẩm vào giỏ hàng trước.", "error");
+      showMessage(
+          "Vui lòng thêm sản phẩm vào giỏ hàng trước.",
+          "error"
+      );
       return;
     }
 
@@ -496,7 +501,7 @@ function App() {
       setCheckoutMessageType("");
 
       const response = await fetch(
-          `http://localhost:8080/api/checkout/${CART_ID}`,
+          `${CHECKOUT_API_URL}/${CART_ID}`,
           {
             method: "POST",
             headers: {
@@ -516,19 +521,33 @@ function App() {
         );
       }
 
+      // =========================
+      // CHECKOUT SUCCESS
+      // =========================
+
+      // Xóa giỏ hàng ngay trên giao diện
+      setCart({
+        id: CART_ID,
+        items: [],
+      });
+
+      // Reset form checkout
       setCheckoutForm({
         customerName: "",
         phone: "",
         address: "",
       });
 
+      // Đóng panel checkout
       setIsCheckoutOpen(false);
       setCheckoutMessage("");
       setCheckoutMessageType("");
 
-      await loadCart();
+      // Cập nhật lại danh sách sản phẩm
+      // để hiển thị tồn kho mới
       await loadProducts();
 
+      // Thông báo thành công
       showMessage(
           `Đặt hàng thành công! Mã đơn hàng #${data.id}`,
           "success"
@@ -537,8 +556,10 @@ function App() {
       console.error(error);
 
       setCheckoutMessage(
-          error.message || "Đặt hàng không thành công."
+          error.message ||
+          "Đặt hàng không thành công."
       );
+
       setCheckoutMessageType("error");
     } finally {
       setCheckoutLoading(false);
@@ -558,20 +579,27 @@ function App() {
   };
 
   const scrollProducts = (direction) => {
-    const container = productsGridRef.current;
+    const container =
+        productsGridRef.current;
 
     if (!container) {
       return;
     }
 
-    const card = container.querySelector(".product-card");
+    const card =
+        container.querySelector(
+            ".product-card"
+        );
 
     if (!card) {
       return;
     }
 
     const gap = 12;
-    const amount = card.getBoundingClientRect().width + gap;
+
+    const amount =
+        card.getBoundingClientRect().width +
+        gap;
 
     container.scrollBy({
       left: direction * amount,
@@ -581,19 +609,26 @@ function App() {
 
   const cartItems = cart.items || [];
 
-  const totalCartQuantity = cartItems.reduce(
-      (total, item) =>
-          total + Number(item.quantity || 0),
-      0
-  );
+  const totalCartQuantity =
+      cartItems.reduce(
+          (total, item) =>
+              total +
+              Number(item.quantity || 0),
+          0
+      );
 
-  const totalCartPrice = cartItems.reduce(
-      (total, item) =>
-          total +
-          Number(item.product.price || 0) *
-          Number(item.quantity || 0),
-      0
-  );
+  const totalCartPrice =
+      cartItems.reduce(
+          (total, item) =>
+              total +
+              Number(
+                  item.product.price || 0
+              ) *
+              Number(
+                  item.quantity || 0
+              ),
+          0
+      );
 
   // =========================
   // UI
@@ -610,6 +645,7 @@ function App() {
           <div className="topbar-inner">
 
             <div className="brand">
+
               <div className="brand-icon">
                 S
               </div>
@@ -623,6 +659,7 @@ function App() {
                   Quản lý bán hàng
                 </div>
               </div>
+
             </div>
 
             <div className="system-status">
@@ -669,7 +706,10 @@ function App() {
                   <strong>
                     {products.length}
                   </strong>
-                  <span>Sản phẩm</span>
+
+                  <span>
+                  Sản phẩm
+                </span>
                 </div>
 
                 <div className="stat-divider"></div>
@@ -678,7 +718,10 @@ function App() {
                   <strong>
                     {totalCartQuantity}
                   </strong>
-                  <span>Trong giỏ</span>
+
+                  <span>
+                  Trong giỏ
+                </span>
                 </div>
 
                 <div className="stat-divider"></div>
@@ -689,7 +732,10 @@ function App() {
                         totalCartPrice
                     )}
                   </strong>
-                  <span>Giá trị giỏ</span>
+
+                  <span>
+                  Giá trị giỏ
+                </span>
                 </div>
 
               </div>
@@ -764,6 +810,7 @@ function App() {
                 <div className="field-group">
 
                   <div className="field-title">
+
                     <label htmlFor="name">
                       Tên sản phẩm
                     </label>
@@ -771,9 +818,11 @@ function App() {
                     <span className="required">
                     Bắt buộc
                   </span>
+
                   </div>
 
                   <div className="input-wrapper">
+
                   <span className="input-icon">
                     ◇
                   </span>
@@ -786,6 +835,7 @@ function App() {
                         onChange={handleChange}
                         placeholder="Ví dụ: Áo thun Premium"
                     />
+
                   </div>
 
                 </div>
@@ -795,6 +845,7 @@ function App() {
                   <div className="field-group">
 
                     <div className="field-title">
+
                       <label htmlFor="price">
                         Giá bán
                       </label>
@@ -802,9 +853,11 @@ function App() {
                       <span>
                       Việt Nam đồng
                     </span>
+
                     </div>
 
                     <div className="input-wrapper">
+
                     <span className="input-icon">
                       ₫
                     </span>
@@ -818,6 +871,7 @@ function App() {
                           onChange={handleChange}
                           placeholder="199000"
                       />
+
                     </div>
 
                   </div>
@@ -825,6 +879,7 @@ function App() {
                   <div className="field-group">
 
                     <div className="field-title">
+
                       <label htmlFor="stock">
                         Số lượng
                       </label>
@@ -832,9 +887,11 @@ function App() {
                       <span>
                       Tồn kho
                     </span>
+
                     </div>
 
                     <div className="input-wrapper">
+
                     <span className="input-icon">
                       #
                     </span>
@@ -848,6 +905,7 @@ function App() {
                           onChange={handleChange}
                           placeholder="100"
                       />
+
                     </div>
 
                   </div>
@@ -857,6 +915,7 @@ function App() {
                 <div className="field-group">
 
                   <div className="field-title">
+
                     <label htmlFor="imageUrl">
                       Đường dẫn hình ảnh
                     </label>
@@ -864,9 +923,11 @@ function App() {
                     <span>
                     Tùy chọn
                   </span>
+
                   </div>
 
                   <div className="input-wrapper">
+
                   <span className="input-icon">
                     ◎
                   </span>
@@ -879,6 +940,7 @@ function App() {
                         onChange={handleChange}
                         placeholder="https://images.example.com/san-pham.jpg"
                     />
+
                   </div>
 
                 </div>
@@ -886,6 +948,7 @@ function App() {
                 <div className="field-group">
 
                   <div className="field-title">
+
                     <label htmlFor="description">
                       Mô tả sản phẩm
                     </label>
@@ -893,6 +956,7 @@ function App() {
                     <span>
                     Tùy chọn
                   </span>
+
                   </div>
 
                   <textarea
@@ -913,6 +977,7 @@ function App() {
                       type="submit"
                       disabled={loading}
                   >
+
                     {loading ? (
                         <>
                           <span className="spinner"></span>
@@ -934,6 +999,7 @@ function App() {
                               : "Thêm sản phẩm"}
                         </>
                     )}
+
                   </button>
 
                   {editingProductId && (
@@ -956,11 +1022,15 @@ function App() {
               <aside className="preview-card">
 
                 <div className="preview-header">
-                  <span>XEM TRƯỚC</span>
+
+                <span>
+                  XEM TRƯỚC
+                </span>
 
                   <div className="preview-status">
                     <span></span>
                   </div>
+
                 </div>
 
                 <div className="preview-image">
@@ -979,6 +1049,7 @@ function App() {
                       />
                   ) : (
                       <div className="empty-preview">
+
                         <div className="preview-icon">
                           ◇
                         </div>
@@ -990,6 +1061,7 @@ function App() {
                         <span>
                       Nhập đường dẫn để xem trước
                     </span>
+
                       </div>
                   )}
 
@@ -1045,6 +1117,7 @@ function App() {
               <div
                   className={`notification ${messageType}`}
               >
+
                 <div className="notification-icon">
                   {messageType === "error"
                       ? "!"
@@ -1052,13 +1125,17 @@ function App() {
                 </div>
 
                 <div>
+
                   <strong>
                     {messageType === "error"
                         ? "Có vấn đề xảy ra"
                         : "Thành công"}
                   </strong>
 
-                  <span>{message}</span>
+                  <span>
+                {message}
+              </span>
+
                 </div>
 
                 <button
@@ -1070,6 +1147,7 @@ function App() {
                 >
                   ×
                 </button>
+
               </div>
           )}
 
@@ -1102,24 +1180,28 @@ function App() {
                 </div>
 
                 <div className="cart-summary-badge">
-              <span>
-                {totalCartQuantity}
-              </span>
+
+                <span>
+                  {totalCartQuantity}
+                </span>
 
                   <small>
                     sản phẩm
                   </small>
+
                 </div>
 
               </div>
 
               {cartLoading ? (
                   <div className="loading-box">
+
                     <span className="large-spinner"></span>
 
                     <p>
                       Đang tải giỏ hàng...
                     </p>
+
                   </div>
               ) : cartItems.length === 0 ? (
                   <div className="cart-empty">
@@ -1166,7 +1248,9 @@ function App() {
                                         }
                                     />
                                 ) : (
-                                    <span>◇</span>
+                                    <span>
+                              ◇
+                            </span>
                                 )}
 
                               </div>
@@ -1176,13 +1260,15 @@ function App() {
                                 <div className="cart-item-top">
 
                                   <div>
-                            <span className="cart-item-category">
-                              SẢN PHẨM
-                            </span>
+
+                              <span className="cart-item-category">
+                                SẢN PHẨM
+                              </span>
 
                                     <h3>
                                       {item.product.name}
                                     </h3>
+
                                   </div>
 
                                   <button
@@ -1211,6 +1297,7 @@ function App() {
                                 <div className="cart-item-bottom">
 
                                   <div className="cart-item-price">
+
                                     <strong>
                                       {formatPrice(
                                           item.product
@@ -1219,13 +1306,14 @@ function App() {
                                     </strong>
 
                                     <span>
-                              Còn{" "}
+                                Còn{" "}
                                       {
                                         item.product
                                             .stock
                                       }{" "}
                                       sản phẩm
-                            </span>
+                              </span>
+
                                   </div>
 
                                   <div className="quantity-control">
@@ -1235,7 +1323,8 @@ function App() {
                                         onClick={() =>
                                             updateCartQuantity(
                                                 item,
-                                                item.quantity - 1
+                                                item.quantity -
+                                                1
                                             )
                                         }
                                         disabled={
@@ -1246,19 +1335,22 @@ function App() {
                                     </button>
 
                                     <span>
-                              {isProcessing ? (
-                                  <span className="quantity-spinner"></span>
-                              ) : (
-                                  item.quantity
-                              )}
-                            </span>
+
+                                {isProcessing ? (
+                                    <span className="quantity-spinner"></span>
+                                ) : (
+                                    item.quantity
+                                )}
+
+                              </span>
 
                                     <button
                                         type="button"
                                         onClick={() =>
                                             updateCartQuantity(
                                                 item,
-                                                item.quantity + 1
+                                                item.quantity +
+                                                1
                                             )
                                         }
                                         disabled={
@@ -1299,7 +1391,9 @@ function App() {
 
                     <aside
                         className={`cart-total-card ${
-                            isCheckoutOpen ? "checkout-panel-open" : ""
+                            isCheckoutOpen
+                                ? "checkout-panel-open"
+                                : ""
                         }`}
                     >
 
@@ -1310,51 +1404,63 @@ function App() {
                             </div>
 
                             <div className="cart-total-heading-row">
+
                               <div>
+
                                 <h3>
                                   Tổng giỏ hàng
                                 </h3>
 
                                 <span className="cart-total-subtitle">
-                                Kiểm tra lại đơn hàng trước khi đặt
-                              </span>
+                            Kiểm tra lại đơn hàng trước khi đặt
+                          </span>
+
                               </div>
 
                               <div className="checkout-mini-icon">
                                 ✓
                               </div>
+
                             </div>
 
                             <div className="cart-total-lines">
 
                               <div>
-                              <span>
-                                Số lượng
-                              </span>
+
+                          <span>
+                            Số lượng
+                          </span>
 
                                 <strong>
                                   {totalCartQuantity}
                                 </strong>
+
                               </div>
 
                               <div>
-                              <span>
-                                Tạm tính
-                              </span>
+
+                          <span>
+                            Tạm tính
+                          </span>
 
                                 <strong>
-                                  {formatPrice(totalCartPrice)}
+                                  {formatPrice(
+                                      totalCartPrice
+                                  )}
                                 </strong>
+
                               </div>
 
                               <div>
-                              <span>
-                                Phí vận chuyển
-                              </span>
+
+                          <span>
+                            Phí vận chuyển
+                          </span>
 
                                 <strong className="free-text">
                                   Miễn phí
                                 </strong>
+
                               </div>
 
                             </div>
@@ -1362,13 +1468,17 @@ function App() {
                             <div className="cart-total-divider"></div>
 
                             <div className="cart-grand-total">
-                            <span>
-                              Tổng cộng
-                            </span>
+
+                        <span>
+                          Tổng cộng
+                        </span>
 
                               <strong>
-                                {formatPrice(totalCartPrice)}
+                                {formatPrice(
+                                    totalCartPrice
+                                )}
                               </strong>
+
                             </div>
 
                             <button
@@ -1376,25 +1486,40 @@ function App() {
                                 className="checkout-preview-button"
                                 onClick={openCheckout}
                             >
-                            <span>
-                              Đặt hàng
-                            </span>
 
-                              <span>→</span>
+                        <span>
+                          Đặt hàng
+                        </span>
+
+                              <span>
+                          →
+                        </span>
+
                             </button>
 
                             <div className="secure-note">
-                              <span>✓</span>
+
+                        <span>
+                          ✓
+                        </span>
+
                               Thông tin của bạn được bảo mật
+
                             </div>
+
                           </>
                       ) : (
                           <form
                               className="checkout-form"
-                              onSubmit={handleCheckout}
+                              onSubmit={
+                                handleCheckout
+                              }
                           >
+
                             <div className="checkout-panel-header">
+
                               <div>
+
                                 <div className="cart-total-label">
                                   ĐẶT HÀNG
                                 </div>
@@ -1406,36 +1531,49 @@ function App() {
                                 <p>
                                   Nhập thông tin để hoàn tất đơn hàng.
                                 </p>
+
                               </div>
 
                               <button
                                   type="button"
                                   className="checkout-close-button"
-                                  onClick={closeCheckout}
-                                  disabled={checkoutLoading}
+                                  onClick={
+                                    closeCheckout
+                                  }
+                                  disabled={
+                                    checkoutLoading
+                                  }
                                   aria-label="Đóng thông tin đặt hàng"
                               >
                                 ×
                               </button>
+
                             </div>
 
                             <div className="checkout-order-preview">
+
                               <div>
-                              <span>
-                                {totalCartQuantity} sản phẩm
-                              </span>
+
+                          <span>
+                            {totalCartQuantity} sản phẩm
+                          </span>
 
                                 <strong>
-                                  {formatPrice(totalCartPrice)}
+                                  {formatPrice(
+                                      totalCartPrice
+                                  )}
                                 </strong>
+
                               </div>
 
                               <small>
                                 Đơn hàng sẽ được lưu ngay vào hệ thống.
                               </small>
+
                             </div>
 
                             <div className="checkout-field">
+
                               <label htmlFor="checkout-customer-name">
                                 Họ và tên
                               </label>
@@ -1444,15 +1582,21 @@ function App() {
                                   id="checkout-customer-name"
                                   name="customerName"
                                   type="text"
-                                  value={checkoutForm.customerName}
-                                  onChange={handleCheckoutChange}
+                                  value={
+                                    checkoutForm.customerName
+                                  }
+                                  onChange={
+                                    handleCheckoutChange
+                                  }
                                   placeholder="Nhập họ và tên"
                                   autoComplete="name"
                                   required
                               />
+
                             </div>
 
                             <div className="checkout-field">
+
                               <label htmlFor="checkout-phone">
                                 Số điện thoại
                               </label>
@@ -1461,15 +1605,21 @@ function App() {
                                   id="checkout-phone"
                                   name="phone"
                                   type="tel"
-                                  value={checkoutForm.phone}
-                                  onChange={handleCheckoutChange}
+                                  value={
+                                    checkoutForm.phone
+                                  }
+                                  onChange={
+                                    handleCheckoutChange
+                                  }
                                   placeholder="Nhập số điện thoại"
                                   autoComplete="tel"
                                   required
                               />
+
                             </div>
 
                             <div className="checkout-field">
+
                               <label htmlFor="checkout-address">
                                 Địa chỉ nhận hàng
                               </label>
@@ -1477,20 +1627,28 @@ function App() {
                               <textarea
                                   id="checkout-address"
                                   name="address"
-                                  value={checkoutForm.address}
-                                  onChange={handleCheckoutChange}
+                                  value={
+                                    checkoutForm.address
+                                  }
+                                  onChange={
+                                    handleCheckoutChange
+                                  }
                                   placeholder="Nhập địa chỉ nhận hàng"
                                   rows="4"
                                   autoComplete="street-address"
                                   required
                               />
+
                             </div>
 
                             <button
                                 type="submit"
                                 className="checkout-submit-button"
-                                disabled={checkoutLoading}
+                                disabled={
+                                  checkoutLoading
+                                }
                             >
+
                               {checkoutLoading ? (
                                   <>
                                     <span className="button-spinner"></span>
@@ -1499,9 +1657,12 @@ function App() {
                               ) : (
                                   <>
                                     Xác nhận đặt hàng
-                                    <span>→</span>
+                                    <span>
+                              →
+                            </span>
                                   </>
                               )}
+
                             </button>
 
                             {checkoutMessage && (
@@ -1515,11 +1676,16 @@ function App() {
                             <button
                                 type="button"
                                 className="checkout-cancel-button"
-                                onClick={closeCheckout}
-                                disabled={checkoutLoading}
+                                onClick={
+                                  closeCheckout
+                                }
+                                disabled={
+                                  checkoutLoading
+                                }
                             >
                               Quay lại giỏ hàng
                             </button>
+
                           </form>
                       )}
 
@@ -1531,8 +1697,8 @@ function App() {
             </section>
 
             {/* =========================
-            PRODUCTS
-        ========================= */}
+              PRODUCTS
+          ========================= */}
 
             <section className="products-section">
 
@@ -1560,7 +1726,9 @@ function App() {
                   <button
                       type="button"
                       className="product-nav-button"
-                      onClick={() => scrollProducts(-1)}
+                      onClick={() =>
+                          scrollProducts(-1)
+                      }
                       aria-label="Xem sản phẩm trước"
                   >
                     ‹
@@ -1569,7 +1737,9 @@ function App() {
                   <button
                       type="button"
                       className="product-nav-button"
-                      onClick={() => scrollProducts(1)}
+                      onClick={() =>
+                          scrollProducts(1)
+                      }
                       aria-label="Xem sản phẩm tiếp theo"
                   >
                     ›
@@ -1596,7 +1766,9 @@ function App() {
               ) : products.length === 0 ? (
                   <div className="empty-products">
 
-                    <div>◇</div>
+                    <div>
+                      ◇
+                    </div>
 
                     <h3>
                       Chưa có sản phẩm
@@ -1609,7 +1781,10 @@ function App() {
 
                   </div>
               ) : (
-                  <div className="products-grid" ref={productsGridRef}>
+                  <div
+                      className="products-grid"
+                      ref={productsGridRef}
+                  >
 
                     {products.map((product) => (
 
@@ -1622,13 +1797,20 @@ function App() {
 
                             {product.imageUrl ? (
                                 <img
-                                    src={product.imageUrl}
+                                    src={
+                                      product.imageUrl
+                                    }
                                     alt={product.name}
                                 />
                             ) : (
                                 <div className="no-image">
-                                  <span>◇</span>
+
+                          <span>
+                            ◇
+                          </span>
+
                                   Chưa có hình ảnh
+
                                 </div>
                             )}
 
@@ -1658,8 +1840,8 @@ function App() {
                               </strong>
 
                               <span>
-                        {product.stock} sản phẩm
-                      </span>
+                          {product.stock} sản phẩm
+                        </span>
 
                             </div>
 
@@ -1679,6 +1861,7 @@ function App() {
                                       product.stock <= 0
                                   }
                               >
+
                                 {cartActionId ===
                                 product.id ? (
                                     <>
@@ -1691,13 +1874,16 @@ function App() {
                                 ) : (
                                     "+ Giỏ hàng"
                                 )}
+
                               </button>
 
                               <button
                                   type="button"
                                   className="edit-button"
                                   onClick={() =>
-                                      handleEdit(product)
+                                      handleEdit(
+                                          product
+                                      )
                                   }
                               >
                                 Chỉnh sửa
@@ -1796,6 +1982,7 @@ function App() {
                       onClick={handleDelete}
                       disabled={deleting}
                   >
+
                     {deleting ? (
                         <>
                           <span className="modal-spinner"></span>
@@ -1803,10 +1990,13 @@ function App() {
                         </>
                     ) : (
                         <>
-                          <span>×</span>
+                    <span>
+                      ×
+                    </span>
                           Xóa sản phẩm
                         </>
                     )}
+
                   </button>
 
                 </div>
