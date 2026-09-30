@@ -16,6 +16,9 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [editingProductId, setEditingProductId] = useState(null);
+  const [deletingProduct, setDeletingProduct] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
 
@@ -30,6 +33,7 @@ function App() {
       }
 
       const data = await response.json();
+
       setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
@@ -165,8 +169,65 @@ function App() {
     }
   };
 
+  const openDeleteModal = (product) => {
+    setDeletingProduct(product);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleting) {
+      return;
+    }
+
+    setDeletingProduct(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingProduct) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+
+      const response = await fetch(
+          `${API_URL}/${deletingProduct.id}`,
+          {
+            method: "DELETE",
+          }
+      );
+
+      if (!response.ok) {
+        throw new Error("Xóa sản phẩm thất bại");
+      }
+
+      setDeletingProduct(null);
+
+      if (editingProductId === deletingProduct.id) {
+        resetForm();
+      }
+
+      showMessage(
+          `Đã xóa sản phẩm "${deletingProduct.name}" thành công!`
+      );
+
+      await loadProducts();
+    } catch (error) {
+      console.error(error);
+
+      showMessage(
+          "Không thể xóa sản phẩm. Vui lòng thử lại.",
+          "error"
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN").format(price || 0) + " ₫";
+    return (
+        new Intl.NumberFormat("vi-VN").format(price || 0) +
+        " ₫"
+    );
   };
 
   return (
@@ -179,7 +240,9 @@ function App() {
 
               <div>
                 <div className="brand-name">CỬA HÀNG</div>
-                <div className="brand-subtitle">Quản lý bán hàng</div>
+                <div className="brand-subtitle">
+                  Quản lý bán hàng
+                </div>
               </div>
             </div>
 
@@ -190,7 +253,7 @@ function App() {
           </div>
         </header>
 
-        {/* Phần giới thiệu */}
+        {/* Hero */}
         <section className="hero">
           <div className="hero-background-circle circle-one"></div>
           <div className="hero-background-circle circle-two"></div>
@@ -209,8 +272,8 @@ function App() {
               </h1>
 
               <p>
-                Thêm và quản lý sản phẩm của cửa hàng với giao diện trực quan,
-                nhanh chóng và hiện đại.
+                Thêm và quản lý sản phẩm của cửa hàng với giao diện
+                trực quan, nhanh chóng và hiện đại.
               </p>
 
               <div className="hero-statistics">
@@ -247,7 +310,7 @@ function App() {
         </section>
 
         <main className="main-container">
-          {/* Form sản phẩm */}
+          {/* Form */}
           <section className="form-card">
             <div className="form-header">
               <div>
@@ -276,12 +339,19 @@ function App() {
             </div>
 
             <div className="form-layout">
-              {/* Biểu mẫu */}
-              <form className="product-form" onSubmit={handleSubmit}>
+              <form
+                  className="product-form"
+                  onSubmit={handleSubmit}
+              >
                 <div className="field-group">
                   <div className="field-title">
-                    <label htmlFor="name">Tên sản phẩm</label>
-                    <span className="required">Bắt buộc</span>
+                    <label htmlFor="name">
+                      Tên sản phẩm
+                    </label>
+
+                    <span className="required">
+                    Bắt buộc
+                  </span>
                   </div>
 
                   <div className="input-wrapper">
@@ -301,7 +371,10 @@ function App() {
                 <div className="two-columns">
                   <div className="field-group">
                     <div className="field-title">
-                      <label htmlFor="price">Giá bán</label>
+                      <label htmlFor="price">
+                        Giá bán
+                      </label>
+
                       <span>Việt Nam đồng</span>
                     </div>
 
@@ -322,7 +395,10 @@ function App() {
 
                   <div className="field-group">
                     <div className="field-title">
-                      <label htmlFor="stock">Số lượng</label>
+                      <label htmlFor="stock">
+                        Số lượng
+                      </label>
+
                       <span>Tồn kho</span>
                     </div>
 
@@ -344,7 +420,10 @@ function App() {
 
                 <div className="field-group">
                   <div className="field-title">
-                    <label htmlFor="imageUrl">Đường dẫn hình ảnh</label>
+                    <label htmlFor="imageUrl">
+                      Đường dẫn hình ảnh
+                    </label>
+
                     <span>Tùy chọn</span>
                   </div>
 
@@ -364,7 +443,10 @@ function App() {
 
                 <div className="field-group">
                   <div className="field-title">
-                    <label htmlFor="description">Mô tả sản phẩm</label>
+                    <label htmlFor="description">
+                      Mô tả sản phẩm
+                    </label>
+
                     <span>Tùy chọn</span>
                   </div>
 
@@ -387,13 +469,17 @@ function App() {
                     {loading ? (
                         <>
                           <span className="spinner"></span>
+
                           {editingProductId
                               ? "Đang cập nhật..."
                               : "Đang thêm sản phẩm..."}
                         </>
                     ) : (
                         <>
-                          <span>{editingProductId ? "✓" : "+"}</span>
+                      <span>
+                        {editingProductId ? "✓" : "+"}
+                      </span>
+
                           {editingProductId
                               ? "Cập nhật sản phẩm"
                               : "Thêm sản phẩm"}
@@ -414,7 +500,7 @@ function App() {
                 </div>
               </form>
 
-              {/* Xem trước */}
+              {/* Preview */}
               <aside className="preview-card">
                 <div className="preview-header">
                   <span>XEM TRƯỚC</span>
@@ -430,22 +516,31 @@ function App() {
                           src={form.imageUrl}
                           alt={form.name || "Sản phẩm"}
                           onError={(event) => {
-                            event.currentTarget.style.display = "none";
+                            event.currentTarget.style.display =
+                                "none";
                           }}
                       />
                   ) : (
                       <div className="empty-preview">
                         <div className="preview-icon">◇</div>
+
                         <strong>Ảnh sản phẩm</strong>
-                        <span>Nhập đường dẫn để xem trước</span>
+
+                        <span>
+                      Nhập đường dẫn để xem trước
+                    </span>
                       </div>
                   )}
                 </div>
 
                 <div className="preview-content">
-                  <span className="preview-label">SẢN PHẨM</span>
+                <span className="preview-label">
+                  SẢN PHẨM
+                </span>
 
-                  <h3>{form.name || "Tên sản phẩm"}</h3>
+                  <h3>
+                    {form.name || "Tên sản phẩm"}
+                  </h3>
 
                   <p>
                     {form.description ||
@@ -502,7 +597,9 @@ function App() {
           <section className="products-section">
             <div className="products-header">
               <div>
-                <div className="section-label">KHO SẢN PHẨM</div>
+                <div className="section-label">
+                  KHO SẢN PHẨM
+                </div>
 
                 <h2>Sản phẩm</h2>
 
@@ -524,13 +621,20 @@ function App() {
             ) : products.length === 0 ? (
                 <div className="empty-products">
                   <div>◇</div>
+
                   <h3>Chưa có sản phẩm</h3>
-                  <p>Hãy thêm sản phẩm đầu tiên cho cửa hàng.</p>
+
+                  <p>
+                    Hãy thêm sản phẩm đầu tiên cho cửa hàng.
+                  </p>
                 </div>
             ) : (
                 <div className="products-grid">
                   {products.map((product) => (
-                      <article className="product-card" key={product.id}>
+                      <article
+                          className="product-card"
+                          key={product.id}
+                      >
                         <div className="product-card-image">
                           {product.imageUrl ? (
                               <img
@@ -558,18 +662,34 @@ function App() {
                           </p>
 
                           <div className="product-card-bottom">
-                            <strong>{formatPrice(product.price)}</strong>
+                            <strong>
+                              {formatPrice(product.price)}
+                            </strong>
 
-                            <span>{product.stock} sản phẩm</span>
+                            <span>
+                        {product.stock} sản phẩm
+                      </span>
                           </div>
 
-                          <button
-                              type="button"
-                              className="edit-button"
-                              onClick={() => handleEdit(product)}
-                          >
-                            Chỉnh sửa sản phẩm
-                          </button>
+                          <div className="product-card-actions">
+                            <button
+                                type="button"
+                                className="edit-button"
+                                onClick={() => handleEdit(product)}
+                            >
+                              Chỉnh sửa
+                            </button>
+
+                            <button
+                                type="button"
+                                className="delete-button"
+                                onClick={() =>
+                                    openDeleteModal(product)
+                                }
+                            >
+                              Xóa
+                            </button>
+                          </div>
                         </div>
                       </article>
                   ))}
@@ -577,6 +697,71 @@ function App() {
             )}
           </section>
         </main>
+
+        {/* Modal xác nhận xóa */}
+        {deletingProduct && (
+            <div
+                className="modal-overlay"
+                onMouseDown={closeDeleteModal}
+            >
+              <div
+                  className="delete-modal"
+                  onMouseDown={(event) =>
+                      event.stopPropagation()
+                  }
+              >
+                <div className="delete-modal-icon">
+                  !
+                </div>
+
+                <div className="delete-modal-content">
+                  <div className="delete-modal-label">
+                    XÁC NHẬN XÓA
+                  </div>
+
+                  <h3>Xóa sản phẩm?</h3>
+
+                  <p>
+                    Bạn có chắc chắn muốn xóa sản phẩm{" "}
+                    <strong>
+                      “{deletingProduct.name}”
+                    </strong>
+                    ? Hành động này không thể hoàn tác.
+                  </p>
+                </div>
+
+                <div className="delete-modal-actions">
+                  <button
+                      type="button"
+                      className="modal-cancel-button"
+                      onClick={closeDeleteModal}
+                      disabled={deleting}
+                  >
+                    Hủy
+                  </button>
+
+                  <button
+                      type="button"
+                      className="modal-delete-button"
+                      onClick={handleDelete}
+                      disabled={deleting}
+                  >
+                    {deleting ? (
+                        <>
+                          <span className="modal-spinner"></span>
+                          Đang xóa...
+                        </>
+                    ) : (
+                        <>
+                          <span>×</span>
+                          Xóa sản phẩm
+                        </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
 
         <footer className="footer">
           <span>© 2026 Cửa hàng của bạn</span>
