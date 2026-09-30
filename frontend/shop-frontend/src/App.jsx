@@ -32,6 +32,17 @@ function App() {
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [checkoutForm, setCheckoutForm] = useState({
+    customerName: "",
+    phone: "",
+    address: "",
+  });
+
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutMessage, setCheckoutMessage] = useState("");
+  const [checkoutMessageType, setCheckoutMessageType] = useState("");
+
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
 
@@ -433,6 +444,104 @@ function App() {
       );
     } finally {
       setCartActionId(null);
+    }
+  };
+
+  // =========================
+  // CHECKOUT
+  // =========================
+
+  const handleCheckoutChange = (event) => {
+    const { name, value } = event.target;
+
+    setCheckoutForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
+
+  const openCheckout = () => {
+    if (cartItems.length === 0) {
+      showMessage("Vui lòng thêm sản phẩm vào giỏ hàng trước.", "error");
+      return;
+    }
+
+    setCheckoutMessage("");
+    setCheckoutMessageType("");
+    setIsCheckoutOpen(true);
+  };
+
+  const closeCheckout = () => {
+    if (checkoutLoading) {
+      return;
+    }
+
+    setIsCheckoutOpen(false);
+    setCheckoutMessage("");
+    setCheckoutMessageType("");
+  };
+
+  const handleCheckout = async (event) => {
+    event.preventDefault();
+
+    if (cartItems.length === 0) {
+      setCheckoutMessage("Giỏ hàng đang trống.");
+      setCheckoutMessageType("error");
+      return;
+    }
+
+    try {
+      setCheckoutLoading(true);
+      setCheckoutMessage("");
+      setCheckoutMessageType("");
+
+      const response = await fetch(
+          `http://localhost:8080/api/checkout/${CART_ID}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(checkoutForm),
+          }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+            data.message ||
+            data.error ||
+            "Đặt hàng không thành công."
+        );
+      }
+
+      setCheckoutForm({
+        customerName: "",
+        phone: "",
+        address: "",
+      });
+
+      setIsCheckoutOpen(false);
+      setCheckoutMessage("");
+      setCheckoutMessageType("");
+
+      await loadCart();
+      await loadProducts();
+
+      showMessage(
+          `Đặt hàng thành công! Mã đơn hàng #${data.id}`,
+          "success"
+      );
+    } catch (error) {
+      console.error(error);
+
+      setCheckoutMessage(
+          error.message || "Đặt hàng không thành công."
+      );
+      setCheckoutMessageType("error");
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -1186,87 +1295,233 @@ function App() {
 
                     </div>
 
-                    {/* CART TOTAL */}
+                    {/* CART TOTAL / CHECKOUT */}
 
-                    <aside className="cart-total-card">
+                    <aside
+                        className={`cart-total-card ${
+                            isCheckoutOpen ? "checkout-panel-open" : ""
+                        }`}
+                    >
 
-                      <div className="cart-total-label">
-                        TÓM TẮT ĐƠN HÀNG
-                      </div>
+                      {!isCheckoutOpen ? (
+                          <>
+                            <div className="cart-total-label">
+                              TÓM TẮT ĐƠN HÀNG
+                            </div>
 
-                      <h3>
-                        Tổng giỏ hàng
-                      </h3>
+                            <div className="cart-total-heading-row">
+                              <div>
+                                <h3>
+                                  Tổng giỏ hàng
+                                </h3>
 
-                      <div className="cart-total-lines">
+                                <span className="cart-total-subtitle">
+                                Kiểm tra lại đơn hàng trước khi đặt
+                              </span>
+                              </div>
 
-                        <div>
-                    <span>
-                      Số lượng
-                    </span>
+                              <div className="checkout-mini-icon">
+                                ✓
+                              </div>
+                            </div>
 
-                          <strong>
-                            {totalCartQuantity}
-                          </strong>
-                        </div>
+                            <div className="cart-total-lines">
 
-                        <div>
-                    <span>
-                      Tạm tính
-                    </span>
+                              <div>
+                              <span>
+                                Số lượng
+                              </span>
 
-                          <strong>
-                            {formatPrice(
-                                totalCartPrice
+                                <strong>
+                                  {totalCartQuantity}
+                                </strong>
+                              </div>
+
+                              <div>
+                              <span>
+                                Tạm tính
+                              </span>
+
+                                <strong>
+                                  {formatPrice(totalCartPrice)}
+                                </strong>
+                              </div>
+
+                              <div>
+                              <span>
+                                Phí vận chuyển
+                              </span>
+
+                                <strong className="free-text">
+                                  Miễn phí
+                                </strong>
+                              </div>
+
+                            </div>
+
+                            <div className="cart-total-divider"></div>
+
+                            <div className="cart-grand-total">
+                            <span>
+                              Tổng cộng
+                            </span>
+
+                              <strong>
+                                {formatPrice(totalCartPrice)}
+                              </strong>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="checkout-preview-button"
+                                onClick={openCheckout}
+                            >
+                            <span>
+                              Đặt hàng
+                            </span>
+
+                              <span>→</span>
+                            </button>
+
+                            <div className="secure-note">
+                              <span>✓</span>
+                              Thông tin của bạn được bảo mật
+                            </div>
+                          </>
+                      ) : (
+                          <form
+                              className="checkout-form"
+                              onSubmit={handleCheckout}
+                          >
+                            <div className="checkout-panel-header">
+                              <div>
+                                <div className="cart-total-label">
+                                  ĐẶT HÀNG
+                                </div>
+
+                                <h3>
+                                  Thông tin nhận hàng
+                                </h3>
+
+                                <p>
+                                  Nhập thông tin để hoàn tất đơn hàng.
+                                </p>
+                              </div>
+
+                              <button
+                                  type="button"
+                                  className="checkout-close-button"
+                                  onClick={closeCheckout}
+                                  disabled={checkoutLoading}
+                                  aria-label="Đóng thông tin đặt hàng"
+                              >
+                                ×
+                              </button>
+                            </div>
+
+                            <div className="checkout-order-preview">
+                              <div>
+                              <span>
+                                {totalCartQuantity} sản phẩm
+                              </span>
+
+                                <strong>
+                                  {formatPrice(totalCartPrice)}
+                                </strong>
+                              </div>
+
+                              <small>
+                                Đơn hàng sẽ được lưu ngay vào hệ thống.
+                              </small>
+                            </div>
+
+                            <div className="checkout-field">
+                              <label htmlFor="checkout-customer-name">
+                                Họ và tên
+                              </label>
+
+                              <input
+                                  id="checkout-customer-name"
+                                  name="customerName"
+                                  type="text"
+                                  value={checkoutForm.customerName}
+                                  onChange={handleCheckoutChange}
+                                  placeholder="Nhập họ và tên"
+                                  autoComplete="name"
+                                  required
+                              />
+                            </div>
+
+                            <div className="checkout-field">
+                              <label htmlFor="checkout-phone">
+                                Số điện thoại
+                              </label>
+
+                              <input
+                                  id="checkout-phone"
+                                  name="phone"
+                                  type="tel"
+                                  value={checkoutForm.phone}
+                                  onChange={handleCheckoutChange}
+                                  placeholder="Nhập số điện thoại"
+                                  autoComplete="tel"
+                                  required
+                              />
+                            </div>
+
+                            <div className="checkout-field">
+                              <label htmlFor="checkout-address">
+                                Địa chỉ nhận hàng
+                              </label>
+
+                              <textarea
+                                  id="checkout-address"
+                                  name="address"
+                                  value={checkoutForm.address}
+                                  onChange={handleCheckoutChange}
+                                  placeholder="Nhập địa chỉ nhận hàng"
+                                  rows="4"
+                                  autoComplete="street-address"
+                                  required
+                              />
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="checkout-submit-button"
+                                disabled={checkoutLoading}
+                            >
+                              {checkoutLoading ? (
+                                  <>
+                                    <span className="button-spinner"></span>
+                                    Đang đặt hàng...
+                                  </>
+                              ) : (
+                                  <>
+                                    Xác nhận đặt hàng
+                                    <span>→</span>
+                                  </>
+                              )}
+                            </button>
+
+                            {checkoutMessage && (
+                                <div
+                                    className={`checkout-message ${checkoutMessageType}`}
+                                >
+                                  {checkoutMessage}
+                                </div>
                             )}
-                          </strong>
-                        </div>
 
-                        <div>
-                    <span>
-                      Phí vận chuyển
-                    </span>
-
-                          <strong className="free-text">
-                            Miễn phí
-                          </strong>
-                        </div>
-
-                      </div>
-
-                      <div className="cart-total-divider"></div>
-
-                      <div className="cart-grand-total">
-
-                  <span>
-                    Tổng cộng
-                  </span>
-
-                        <strong>
-                          {formatPrice(
-                              totalCartPrice
-                          )}
-                        </strong>
-
-                      </div>
-
-                      <button
-                          type="button"
-                          className="checkout-preview-button"
-                          onClick={() =>
-                              showMessage(
-                                  "Chức năng thanh toán sẽ được thực hiện ở bước tiếp theo."
-                              )
-                          }
-                      >
-                        Tiến hành thanh toán
-                        <span>→</span>
-                      </button>
-
-                      <div className="secure-note">
-                        <span>✓</span>
-                        Thanh toán an toàn và bảo mật
-                      </div>
+                            <button
+                                type="button"
+                                className="checkout-cancel-button"
+                                onClick={closeCheckout}
+                                disabled={checkoutLoading}
+                            >
+                              Quay lại giỏ hàng
+                            </button>
+                          </form>
+                      )}
 
                     </aside>
 
