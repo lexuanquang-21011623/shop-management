@@ -27,4 +27,21 @@ public class ProductController {
     public Product createProduct(@Valid @RequestBody Product product) {
         return productRepository.save(product);
     }
+
+    @PutMapping("/{id}")
+    public Product updateProduct(
+            @PathVariable Long id,
+            @Valid @RequestBody Product productDetails
+    ) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+
+        product.setName(productDetails.getName());
+        product.setDescription(productDetails.getDescription());
+        product.setPrice(productDetails.getPrice());
+        product.setStock(productDetails.getStock());
+        product.setImageUrl(productDetails.getImageUrl());
+
+        return productRepository.save(product);
+    }
 }

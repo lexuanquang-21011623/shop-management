@@ -15,6 +15,7 @@ function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [editingProductId, setEditingProductId] = useState(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
 
@@ -32,6 +33,7 @@ function App() {
       setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
+      showMessage("Không thể tải danh sách sản phẩm", "error");
     } finally {
       setLoadingProducts(false);
     }
@@ -60,6 +62,35 @@ function App() {
     }, 3500);
   };
 
+  const resetForm = () => {
+    setForm({
+      name: "",
+      price: "",
+      stock: "",
+      imageUrl: "",
+      description: "",
+    });
+
+    setEditingProductId(null);
+  };
+
+  const handleEdit = (product) => {
+    setEditingProductId(product.id);
+
+    setForm({
+      name: product.name || "",
+      price: product.price ?? "",
+      stock: product.stock ?? "",
+      imageUrl: product.imageUrl || "",
+      description: product.description || "",
+    });
+
+    window.scrollTo({
+      top: 300,
+      behavior: "smooth",
+    });
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -81,8 +112,14 @@ function App() {
     try {
       setLoading(true);
 
-      const response = await fetch(API_URL, {
-        method: "POST",
+      const isEditing = editingProductId !== null;
+
+      const url = isEditing
+          ? `${API_URL}/${editingProductId}`
+          : API_URL;
+
+      const response = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -96,26 +133,31 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error("Thêm sản phẩm thất bại");
+        throw new Error(
+            isEditing
+                ? "Cập nhật sản phẩm thất bại"
+                : "Thêm sản phẩm thất bại"
+        );
       }
 
       await response.json();
 
-      showMessage("Thêm sản phẩm thành công!");
+      showMessage(
+          isEditing
+              ? "Cập nhật sản phẩm thành công!"
+              : "Thêm sản phẩm thành công!"
+      );
 
-      setForm({
-        name: "",
-        price: "",
-        stock: "",
-        imageUrl: "",
-        description: "",
-      });
+      resetForm();
 
       await loadProducts();
     } catch (error) {
       console.error(error);
+
       showMessage(
-          "Không thể thêm sản phẩm. Vui lòng kiểm tra máy chủ.",
+          editingProductId !== null
+              ? "Không thể cập nhật sản phẩm. Vui lòng kiểm tra máy chủ."
+              : "Không thể thêm sản phẩm. Vui lòng kiểm tra máy chủ.",
           "error"
       );
     } finally {
@@ -204,21 +246,33 @@ function App() {
           </div>
         </section>
 
-        {/* Khu vực thêm sản phẩm */}
         <main className="main-container">
+          {/* Form sản phẩm */}
           <section className="form-card">
             <div className="form-header">
               <div>
-                <div className="section-label">THÊM SẢN PHẨM</div>
+                <div className="section-label">
+                  {editingProductId
+                      ? "CHỈNH SỬA SẢN PHẨM"
+                      : "THÊM SẢN PHẨM"}
+                </div>
 
-                <h2>Thêm sản phẩm mới</h2>
+                <h2>
+                  {editingProductId
+                      ? "Chỉnh sửa sản phẩm"
+                      : "Thêm sản phẩm mới"}
+                </h2>
 
                 <p>
-                  Điền thông tin bên dưới để đưa sản phẩm vào cửa hàng.
+                  {editingProductId
+                      ? "Cập nhật thông tin sản phẩm bên dưới."
+                      : "Điền thông tin bên dưới để đưa sản phẩm vào cửa hàng."}
                 </p>
               </div>
 
-              <div className="section-number">01</div>
+              <div className="section-number">
+                {editingProductId ? "02" : "01"}
+              </div>
             </div>
 
             <div className="form-layout">
@@ -324,23 +378,40 @@ function App() {
                   />
                 </div>
 
-                <button
-                    className="submit-button"
-                    type="submit"
-                    disabled={loading}
-                >
-                  {loading ? (
-                      <>
-                        <span className="spinner"></span>
-                        Đang thêm sản phẩm...
-                      </>
-                  ) : (
-                      <>
-                        <span>+</span>
-                        Thêm sản phẩm
-                      </>
+                <div className="form-actions">
+                  <button
+                      className="submit-button"
+                      type="submit"
+                      disabled={loading}
+                  >
+                    {loading ? (
+                        <>
+                          <span className="spinner"></span>
+                          {editingProductId
+                              ? "Đang cập nhật..."
+                              : "Đang thêm sản phẩm..."}
+                        </>
+                    ) : (
+                        <>
+                          <span>{editingProductId ? "✓" : "+"}</span>
+                          {editingProductId
+                              ? "Cập nhật sản phẩm"
+                              : "Thêm sản phẩm"}
+                        </>
+                    )}
+                  </button>
+
+                  {editingProductId && (
+                      <button
+                          className="cancel-button"
+                          type="button"
+                          onClick={resetForm}
+                          disabled={loading}
+                      >
+                        Hủy chỉnh sửa
+                      </button>
                   )}
-                </button>
+                </div>
               </form>
 
               {/* Xem trước */}
@@ -489,10 +560,16 @@ function App() {
                           <div className="product-card-bottom">
                             <strong>{formatPrice(product.price)}</strong>
 
-                            <span>
-                        {product.stock} sản phẩm
-                      </span>
+                            <span>{product.stock} sản phẩm</span>
                           </div>
+
+                          <button
+                              type="button"
+                              className="edit-button"
+                              onClick={() => handleEdit(product)}
+                          >
+                            Chỉnh sửa sản phẩm
+                          </button>
                         </div>
                       </article>
                   ))}
