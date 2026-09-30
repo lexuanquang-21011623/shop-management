@@ -1,122 +1,512 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+
+const API_URL = "http://localhost:8080/api/products";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [form, setForm] = useState({
+    name: "",
+    price: "",
+    stock: "",
+    imageUrl: "",
+    description: "",
+  });
+
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("");
+
+  const loadProducts = async () => {
+    try {
+      setLoadingProducts(true);
+
+      const response = await fetch(API_URL);
+
+      if (!response.ok) {
+        throw new Error("Không thể tải danh sách sản phẩm");
+      }
+
+      const data = await response.json();
+      setProducts(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
+
+  const showMessage = (text, type = "success") => {
+    setMessage(text);
+    setMessageType(type);
+
+    setTimeout(() => {
+      setMessage("");
+      setMessageType("");
+    }, 3500);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!form.name.trim()) {
+      showMessage("Vui lòng nhập tên sản phẩm", "error");
+      return;
+    }
+
+    if (!form.price || Number(form.price) <= 0) {
+      showMessage("Giá sản phẩm phải lớn hơn 0", "error");
+      return;
+    }
+
+    if (form.stock === "" || Number(form.stock) < 0) {
+      showMessage("Số lượng không hợp lệ", "error");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          price: Number(form.price),
+          stock: Number(form.stock),
+          imageUrl: form.imageUrl.trim(),
+          description: form.description.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Thêm sản phẩm thất bại");
+      }
+
+      await response.json();
+
+      showMessage("Thêm sản phẩm thành công!");
+
+      setForm({
+        name: "",
+        price: "",
+        stock: "",
+        imageUrl: "",
+        description: "",
+      });
+
+      await loadProducts();
+    } catch (error) {
+      console.error(error);
+      showMessage(
+          "Không thể thêm sản phẩm. Vui lòng kiểm tra máy chủ.",
+          "error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat("vi-VN").format(price || 0) + " ₫";
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      <div className="app">
+        {/* Thanh đầu trang */}
+        <header className="topbar">
+          <div className="topbar-inner">
+            <div className="brand">
+              <div className="brand-icon">S</div>
 
-      <div className="ticks"></div>
+              <div>
+                <div className="brand-name">CỬA HÀNG</div>
+                <div className="brand-subtitle">Quản lý bán hàng</div>
+              </div>
+            </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+            <div className="system-status">
+              <span className="status-dot"></span>
+              Hệ thống đang hoạt động
+            </div>
+          </div>
+        </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {/* Phần giới thiệu */}
+        <section className="hero">
+          <div className="hero-background-circle circle-one"></div>
+          <div className="hero-background-circle circle-two"></div>
+
+          <div className="hero-content">
+            <div className="hero-left">
+              <div className="eyebrow">
+                <span>✦</span>
+                QUẢN LÝ SẢN PHẨM
+              </div>
+
+              <h1>
+                Quản lý sản phẩm
+                <br />
+                <span>đơn giản hơn.</span>
+              </h1>
+
+              <p>
+                Thêm và quản lý sản phẩm của cửa hàng với giao diện trực quan,
+                nhanh chóng và hiện đại.
+              </p>
+
+              <div className="hero-statistics">
+                <div className="stat-item">
+                  <strong>{products.length}</strong>
+                  <span>Sản phẩm</span>
+                </div>
+
+                <div className="stat-divider"></div>
+
+                <div className="stat-item">
+                  <strong>100%</strong>
+                  <span>Đồng bộ dữ liệu</span>
+                </div>
+
+                <div className="stat-divider"></div>
+
+                <div className="stat-item">
+                  <strong>24/7</strong>
+                  <span>Hoạt động</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="hero-decoration">
+              <div className="orbit orbit-one"></div>
+              <div className="orbit orbit-two"></div>
+
+              <div className="decoration-card">
+                <span>✦</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Khu vực thêm sản phẩm */}
+        <main className="main-container">
+          <section className="form-card">
+            <div className="form-header">
+              <div>
+                <div className="section-label">THÊM SẢN PHẨM</div>
+
+                <h2>Thêm sản phẩm mới</h2>
+
+                <p>
+                  Điền thông tin bên dưới để đưa sản phẩm vào cửa hàng.
+                </p>
+              </div>
+
+              <div className="section-number">01</div>
+            </div>
+
+            <div className="form-layout">
+              {/* Biểu mẫu */}
+              <form className="product-form" onSubmit={handleSubmit}>
+                <div className="field-group">
+                  <div className="field-title">
+                    <label htmlFor="name">Tên sản phẩm</label>
+                    <span className="required">Bắt buộc</span>
+                  </div>
+
+                  <div className="input-wrapper">
+                    <span className="input-icon">◇</span>
+
+                    <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        value={form.name}
+                        onChange={handleChange}
+                        placeholder="Ví dụ: Áo thun Premium"
+                    />
+                  </div>
+                </div>
+
+                <div className="two-columns">
+                  <div className="field-group">
+                    <div className="field-title">
+                      <label htmlFor="price">Giá bán</label>
+                      <span>Việt Nam đồng</span>
+                    </div>
+
+                    <div className="input-wrapper">
+                      <span className="input-icon">₫</span>
+
+                      <input
+                          id="price"
+                          name="price"
+                          type="number"
+                          min="0"
+                          value={form.price}
+                          onChange={handleChange}
+                          placeholder="199000"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="field-group">
+                    <div className="field-title">
+                      <label htmlFor="stock">Số lượng</label>
+                      <span>Tồn kho</span>
+                    </div>
+
+                    <div className="input-wrapper">
+                      <span className="input-icon">#</span>
+
+                      <input
+                          id="stock"
+                          name="stock"
+                          type="number"
+                          min="0"
+                          value={form.stock}
+                          onChange={handleChange}
+                          placeholder="100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="field-group">
+                  <div className="field-title">
+                    <label htmlFor="imageUrl">Đường dẫn hình ảnh</label>
+                    <span>Tùy chọn</span>
+                  </div>
+
+                  <div className="input-wrapper">
+                    <span className="input-icon">◎</span>
+
+                    <input
+                        id="imageUrl"
+                        name="imageUrl"
+                        type="url"
+                        value={form.imageUrl}
+                        onChange={handleChange}
+                        placeholder="https://images.example.com/san-pham.jpg"
+                    />
+                  </div>
+                </div>
+
+                <div className="field-group">
+                  <div className="field-title">
+                    <label htmlFor="description">Mô tả sản phẩm</label>
+                    <span>Tùy chọn</span>
+                  </div>
+
+                  <textarea
+                      id="description"
+                      name="description"
+                      value={form.description}
+                      onChange={handleChange}
+                      placeholder="Mô tả ngắn gọn về sản phẩm..."
+                      rows="5"
+                  />
+                </div>
+
+                <button
+                    className="submit-button"
+                    type="submit"
+                    disabled={loading}
+                >
+                  {loading ? (
+                      <>
+                        <span className="spinner"></span>
+                        Đang thêm sản phẩm...
+                      </>
+                  ) : (
+                      <>
+                        <span>+</span>
+                        Thêm sản phẩm
+                      </>
+                  )}
+                </button>
+              </form>
+
+              {/* Xem trước */}
+              <aside className="preview-card">
+                <div className="preview-header">
+                  <span>XEM TRƯỚC</span>
+
+                  <div className="preview-status">
+                    <span></span>
+                  </div>
+                </div>
+
+                <div className="preview-image">
+                  {form.imageUrl ? (
+                      <img
+                          src={form.imageUrl}
+                          alt={form.name || "Sản phẩm"}
+                          onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                          }}
+                      />
+                  ) : (
+                      <div className="empty-preview">
+                        <div className="preview-icon">◇</div>
+                        <strong>Ảnh sản phẩm</strong>
+                        <span>Nhập đường dẫn để xem trước</span>
+                      </div>
+                  )}
+                </div>
+
+                <div className="preview-content">
+                  <span className="preview-label">SẢN PHẨM</span>
+
+                  <h3>{form.name || "Tên sản phẩm"}</h3>
+
+                  <p>
+                    {form.description ||
+                        "Mô tả sản phẩm sẽ hiển thị ở đây."}
+                  </p>
+
+                  <div className="preview-bottom">
+                    <strong>
+                      {form.price
+                          ? formatPrice(Number(form.price))
+                          : "199.000 ₫"}
+                    </strong>
+
+                    <span>
+                    {form.stock
+                        ? `${form.stock} sản phẩm`
+                        : "Chưa nhập số lượng"}
+                  </span>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          {/* Thông báo */}
+          {message && (
+              <div className={`notification ${messageType}`}>
+                <div className="notification-icon">
+                  {messageType === "error" ? "!" : "✓"}
+                </div>
+
+                <div>
+                  <strong>
+                    {messageType === "error"
+                        ? "Có vấn đề xảy ra"
+                        : "Thành công"}
+                  </strong>
+
+                  <span>{message}</span>
+                </div>
+
+                <button
+                    onClick={() => {
+                      setMessage("");
+                      setMessageType("");
+                    }}
+                >
+                  ×
+                </button>
+              </div>
+          )}
+
+          {/* Danh sách sản phẩm */}
+          <section className="products-section">
+            <div className="products-header">
+              <div>
+                <div className="section-label">KHO SẢN PHẨM</div>
+
+                <h2>Sản phẩm</h2>
+
+                <p>
+                  {products.length} sản phẩm đang có trong hệ thống
+                </p>
+              </div>
+
+              <div className="product-count">
+                {products.length}
+              </div>
+            </div>
+
+            {loadingProducts ? (
+                <div className="loading-box">
+                  <span className="large-spinner"></span>
+                  <p>Đang tải sản phẩm...</p>
+                </div>
+            ) : products.length === 0 ? (
+                <div className="empty-products">
+                  <div>◇</div>
+                  <h3>Chưa có sản phẩm</h3>
+                  <p>Hãy thêm sản phẩm đầu tiên cho cửa hàng.</p>
+                </div>
+            ) : (
+                <div className="products-grid">
+                  {products.map((product) => (
+                      <article className="product-card" key={product.id}>
+                        <div className="product-card-image">
+                          {product.imageUrl ? (
+                              <img
+                                  src={product.imageUrl}
+                                  alt={product.name}
+                              />
+                          ) : (
+                              <div className="no-image">
+                                <span>◇</span>
+                                Chưa có hình ảnh
+                              </div>
+                          )}
+
+                          <div className="stock-badge">
+                            Còn {product.stock}
+                          </div>
+                        </div>
+
+                        <div className="product-card-content">
+                          <h3>{product.name}</h3>
+
+                          <p>
+                            {product.description ||
+                                "Chưa có mô tả sản phẩm."}
+                          </p>
+
+                          <div className="product-card-bottom">
+                            <strong>{formatPrice(product.price)}</strong>
+
+                            <span>
+                        {product.stock} sản phẩm
+                      </span>
+                          </div>
+                        </div>
+                      </article>
+                  ))}
+                </div>
+            )}
+          </section>
+        </main>
+
+        <footer className="footer">
+          <span>© 2026 Cửa hàng của bạn</span>
+          <span>Hệ thống quản lý bán hàng</span>
+        </footer>
+      </div>
+  );
 }
 
-export default App
+export default App;
